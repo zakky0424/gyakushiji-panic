@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1021" />
+  <meta name="description" content="指示どおりなのに間違える!? タップだけで遊べる30秒脳トレゲーム。" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="逆指示パニック" />
+  <style>
+:root{color-scheme:dark;--bg:#0b1021;--surface:#161b33;--outline:#2b3453;--text:#f5f7ff;--muted:#aab3d1;--purple:#9975ff;--pink:#ff6b9d;--green:#41d8a4}*{box-sizing:border-box}html{min-height:100%;background:var(--bg)}body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;margin:0;color:var(--text);min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent}button{font:inherit;cursor:pointer;touch-action:manipulation}button:focus-visible{outline:3px solid #f9d76a;outline-offset:4px}button:disabled{opacity:.55;cursor:not-allowed}.ambient{position:fixed;z-index:-1;filter:blur(90px);pointer-events:none;opacity:.26;border-radius:50%}.ambient-one{width:280px;height:280px;background:#5542d8;left:-190px;top:70px}.ambient-two{width:220px;height:280px;background:#e43c93;right:-200px;bottom:160px}.shell{width:min(100%,540px);margin:0 auto;padding:19px 22px max(18px,env(safe-area-inset-bottom));min-height:100dvh;display:flex;flex-direction:column}.site-header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:20px}.brand{display:flex;gap:10px;align-items:center}.brand-icon{width:41px;height:41px;background:linear-gradient(145deg,#a978ff,#ff628e);display:grid;place-items:center;border-radius:13px;font-size:31px;font-weight:900;line-height:1;box-shadow:0 5px 25px #9369ff30}.brand-title{font-size:19px;font-weight:900;letter-spacing:-.06em}.brand-title span{color:#ff86a9}.brand-sub{font-size:10px;color:var(--muted);padding-top:2px;letter-spacing:.01em}.version{font-size:10px;color:#a9a3d5;background:#242340;border-radius:999px;padding:7px 9px;white-space:nowrap}.site-footer{text-align:center;font-size:10px;opacity:.42;padding-top:24px;margin-top:auto}.screen[hidden],[hidden]{display:none!important}.hero{padding:23px 0 17px}.eyebrow{font-weight:800;letter-spacing:.06em;font-size:11px;color:#ae95ff;background:#221d43;border:1px solid #453775;padding:7px 11px;border-radius:99px;display:inline-block}.hero h1{font-size:clamp(45px,11.5vw,64px);line-height:1.14;letter-spacing:-.075em;margin:18px 0 14px;font-weight:900}.hero h1 em{font-style:normal;background:linear-gradient(100deg,#a58dff,#ff78a6);color:transparent;background-clip:text}.hero p{font-size:13px;line-height:1.9;color:#d0d5eb;margin:0 0 18px}.example{border:1px solid #3b3b66;border-radius:19px;background:linear-gradient(125deg,#1a2140,#211e3b);padding:15px 18px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.example-tag{font-size:10px;color:#aea6d3}.example strong{font-size:15px;letter-spacing:-.03em}.example-colors{display:flex;gap:6px}.dot{width:17px;height:17px;border-radius:50%;display:inline-block}.red{background:#ff5b75}.blue{background:#4f9dff}.green{background:#41d8a4}.mode-grid{display:grid;gap:12px;margin:0 0 19px}.mode-card{width:100%;display:flex;align-items:center;text-align:left;border-radius:19px;border:1px solid #4b448e;padding:17px 17px;min-height:81px;color:white;gap:14px;box-shadow:0 10px 30px #00000022}.mode-card.primary{background:linear-gradient(105deg,#704ad9,#ab58da)}.mode-card.secondary{background:#1a2240;border-color:#344268}.mode-card:active{transform:scale(.985)}.mode-icon{font-size:23px;width:43px;height:43px;border-radius:14px;display:grid;place-items:center;background:#ffffff29;flex:none}.mode-content{flex:1;display:flex;flex-direction:column;gap:5px}.mode-content strong{font-size:16px}.mode-content small{color:#e8e5fb;font-size:11px}.mode-arrow{font-size:23px}.stats-strip{border:1px solid var(--outline);background:#161d35;border-radius:16px;display:flex;align-items:center;justify-content:space-around;padding:16px 0}.stats-strip>div:not(.stats-divider){display:flex;flex-direction:column;align-items:center;gap:5px;width:45%}.stats-strip span{color:#9faacc;font-size:10px}.stats-strip strong{font-size:19px}.stats-divider{width:1px;height:33px;background:#3a4461}.disclaimer{font-size:10px;text-align:center;color:#8b95b1;line-height:1.8;margin:17px 0 0}.game-header{display:flex;align-items:center;justify-content:space-between;margin:2px 0 16px}.icon-button{background:#1e2944;border:1px solid #354366;border-radius:13px;width:45px;height:45px;color:white;font-size:22px}.mode-caption{font-weight:800;font-size:14px}.question-count{font-size:13px;color:#b2bbdd;border:1px solid #394362;padding:9px 12px;border-radius:12px}.hud{display:flex;justify-content:space-between;gap:9px}.hud-cell{flex:1;background:#171e36;border:1px solid #2c3857;border-radius:15px;text-align:center;min-width:0;padding:12px 5px;display:flex;flex-direction:column;gap:4px}.hud-cell>span{font-size:10px;color:#a9b4d3}.hud-cell strong{font-size:27px;font-variant-numeric:tabular-nums}.hud-cell:first-child strong{color:#ffc27a}.hud-cell strong small{font-size:12px;margin-left:3px}.timer-track{height:7px;border-radius:20px;background:#232d4a;overflow:hidden;margin:13px 0 18px}.timer-fill{background:linear-gradient(90deg,#ff7d94,#ffc875);height:100%;width:100%;border-radius:20px;transition:width .10s linear}.prompt-card{background:linear-gradient(150deg,#1d2544,#1a1e3a);border:1px solid #374065;border-radius:24px;min-height:245px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:22px 12px 10px;position:relative;box-shadow:0 14px 34px #0002;text-align:center;overflow:hidden}.prompt-label{font-size:11px;color:#aeb6d2;font-weight:700}.prompt-card h2{font-size:clamp(23px,7vw,34px);line-height:1.35;letter-spacing:-.05em;margin:21px 0 7px;font-weight:900;white-space:nowrap;width:100%;max-width:100%;text-align:center}.prompt-keyword{font-size:1.18em;white-space:nowrap}.prompt-card p{font-size:11px;color:#b1b9d1;margin:9px 0 12px}.stimulus{font-size:45px;line-height:1.2;font-weight:900;margin:6px 0 0;text-shadow:0 3px 13px #0006}.round-timer{height:6px;background:#313a5b;position:absolute;bottom:0;left:0;right:0}.round-timer>div{width:100%;height:100%;background:#9f81ff;transition:width .09s linear}.answer-label{color:#aeb7d2;font-size:11px;text-align:center;padding:23px 0 14px}.answers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.answer{min-height:110px;border:none;border-radius:19px;color:#172039;font-weight:900;font-size:26px;box-shadow:inset 0 -7px #0002,0 8px 18px #0002;transition:transform .09s;position:relative}.answer:active{transform:translateY(5px);box-shadow:inset 0 -2px #0002}.answer[data-answer=red]{background:#ff5b75}.answer[data-answer=blue]{background:#4f9dff}.answer[data-answer=green]{background:#41d8a4}.wait-note{border:1px solid #4d5285;border-radius:13px;padding:12px;text-align:center;color:#cccaf5;margin-top:17px;font-size:12px}.feedback{min-height:27px;margin-top:14px;text-align:center;color:#ffe08a;font-size:14px;font-weight:900}.feedback.good{color:#76ecba}.feedback.bad{color:#ff9caf}.game-tip{text-align:center;font-size:10px;color:#8994b2;margin:0}.result-top{text-align:center;margin-top:35px}.result-top h2{font-size:33px;margin:22px 0 8px;letter-spacing:-.05em}.result-top p{color:#b3bedc;font-size:13px}.big-score{text-align:center;margin:25px auto 19px;background:radial-gradient(circle at top,#393065 0,#181c36 72%);border:1px solid #494472;border-radius:28px;padding:24px;display:flex;flex-direction:column;gap:3px;align-items:center;max-width:300px}.big-score span{color:#c5c6e4;font-size:12px}.big-score strong{font-size:94px;line-height:1.1;letter-spacing:-.06em;color:#fcbbd1;font-variant-numeric:tabular-nums}.big-score small{color:#aea6cf}.results-row{display:flex;gap:12px;justify-content:center;margin-bottom:25px}.results-row>div{flex:1;max-width:180px;text-align:center;background:#192139;border:1px solid #334061;border-radius:16px;padding:13px;display:flex;flex-direction:column;gap:4px}.results-row span{font-size:11px;color:#aeb9d5}.results-row strong{font-size:25px}.result-actions{display:flex;flex-direction:column;gap:10px}.action-button{width:100%;min-height:53px;border:0;border-radius:14px;font-weight:900;font-size:14px;color:white}.share-button{background:linear-gradient(100deg,#7660de,#ae60d4)}.replay-button{background:#263557;border:1px solid #52618c}.text-button{border:0;background:transparent;color:#c5cbe0;font-size:13px;padding:9px}.result-footer{font-size:11px;color:#808ca9;text-align:center}body:has(#game:not([hidden])) .site-header{padding-bottom:11px}@media(max-width:355px){.shell{padding-left:15px;padding-right:15px}.version{font-size:9px}.brand-title{font-size:16px}.answer{min-height:88px;font-size:23px}.prompt-card{min-height:220px}}@media(max-height:735px){.hero{padding-top:7px}.hero h1{font-size:46px}.prompt-card{min-height:197px}.answer{min-height:89px}.answer-label{padding:15px 0 10px}.site-header{padding-bottom:11px}}
+/* v0.6: 正誤が一目でわかる濃い色。問題文やボタン位置には影響させない。 */
+.prompt-card>.prompt-label,.prompt-card>h2,.prompt-card>.stimulus,.prompt-card>p{position:relative;z-index:1}
+.prompt-card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;z-index:0}
+.prompt-card.effect-good::after{background:#08bf84a6;animation:card-flash .45s ease-out both}
+.prompt-card.effect-bad::after{background:#f32757ad;animation:card-flash .45s ease-out both}
+
+.prompt-card.effect-good{border-color:#2fe2a8;box-shadow:0 0 0 2px #16cb8d66,0 14px 34px #0002}
+.prompt-card.effect-bad{border-color:#ff5576;box-shadow:0 0 0 2px #ff386966,0 14px 34px #0002}
+.effect-badge{position:absolute;right:14px;top:12px;z-index:1;width:36px;height:36px;border-radius:12px;display:grid;place-items:center;font-size:24px;font-weight:900;opacity:0;pointer-events:none}
+.effect-badge.good{background:#075f45;color:#ffffff;animation:badge-pop .48s ease-out both}
+.effect-badge.bad{background:#a81940;color:#ffffff;animation:badge-pop .48s ease-out both}
+#score-display.score-pop,#streak-display.score-pop{animation:score-pop .25s ease-out both}
+.feedback.good,.feedback.bad{animation:feedback-in .20s ease-out both}
+@keyframes card-flash{0%{opacity:1}100%{opacity:0}}
+@keyframes badge-pop{0%{opacity:0;transform:scale(.7)}30%{opacity:1;transform:scale(1.08)}70%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(.94)}}
+@keyframes score-pop{0%{transform:scale(1)}50%{transform:scale(1.20)}100%{transform:scale(1)}}
+@keyframes feedback-in{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}.prompt-card.effect-good::after,.prompt-card.effect-bad::after{opacity:.55}.effect-badge.good,.effect-badge.bad{opacity:1}}
+
+</style>
+  <title>逆指示パニック｜無料30秒ゲーム</title>
+</head>
+<body>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+  <div class="shell">
+    <header class="site-header">
+      <div class="brand"><div class="brand-icon" aria-hidden="true">↯</div><div><div class="brand-title">逆指示<span>パニック</span></div><div class="brand-sub">考えるより、先に指が動く。</div></div></div>
+      <span class="version">無料試作版 v0.6</span>
+    </header>
+
+    <main>
+      <section id="home" class="screen" aria-labelledby="home-heading">
+        <div class="hero">
+          <span class="eyebrow">1プレイ30秒の反射神経ゲーム</span>
+          <h1 id="home-heading">その指、<br /><em>だまされる。</em></h1>
+          <p>画面の指示に従って、色のボタンをタップ。<br />ただし、指示はだんだん意地悪に。</p>
+          <div class="example" aria-hidden="true"><span class="example-tag">たとえば…</span><strong>「青以外を押せ！」</strong><div class="example-colors"><span class="dot red"></span><span class="dot blue"></span><span class="dot green"></span></div></div>
+        </div>
+        <div class="mode-grid">
+          <button id="start-challenge" type="button" class="mode-card primary"><span class="mode-icon" aria-hidden="true">⚡</span><span class="mode-content"><strong>30秒チャレンジ</strong><small>何問正解できる？</small></span><span class="mode-arrow" aria-hidden="true">→</span></button>
+          <button id="start-daily" type="button" class="mode-card secondary"><span class="mode-icon" aria-hidden="true">✦</span><span class="mode-content"><strong>今日の5問</strong><small>みんな同じ問題に挑戦</small></span><span class="mode-arrow" aria-hidden="true">→</span></button>
+        </div>
+        <div class="stats-strip"><div><span>30秒最高</span><strong id="best-score">—</strong></div><div class="stats-divider"></div><div><span>今日の5問</span><strong id="daily-best">未挑戦</strong></div></div>
+        <p class="disclaimer">無料・登録不要・広告なし（試作中）<br />成績はこの端末にのみ保存されます。</p>
+      </section>
+
+      <section id="game" class="screen" hidden aria-label="ゲーム画面">
+        <div class="game-header"><button id="quit" class="icon-button" type="button" aria-label="ホームへ戻る">←</button><div id="mode-caption" class="mode-caption">30秒チャレンジ</div><div class="question-count" id="question-count">Q1</div></div>
+        <div class="hud"><div class="hud-cell"><span>のこり時間</span><strong id="time-display">30.0<small>秒</small></strong></div><div class="hud-cell"><span>正解</span><strong id="score-display">0</strong></div><div class="hud-cell"><span>連続正解</span><strong id="streak-display">0</strong></div></div>
+        <div class="timer-track" aria-label="残り時間"><div id="timer-fill" class="timer-fill"></div></div>
+        <div class="prompt-card" id="prompt-card"><span class="effect-badge" id="effect-badge" aria-hidden="true"></span><span class="prompt-label">画面の指示は…</span><h2 id="prompt">赤を押せ！</h2><div class="stimulus" id="stimulus" hidden>赤</div><p id="prompt-subtitle">直感で選ぼう</p><div class="round-timer"><div id="round-fill"></div></div></div>
+        <div class="answer-label">タップして答えよう</div>
+        <div class="answers" id="answers"><button type="button" class="answer" data-answer="red"><span>赤</span></button><button type="button" class="answer" data-answer="blue"><span>青</span></button><button type="button" class="answer" data-answer="green"><span>緑</span></button></div>
+        <div class="wait-note" id="wait-note" hidden>手を離して待つだけでOK</div>
+        <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+        <p class="game-tip">ミスすると残り時間が1.8秒減ります</p>
+      </section>
+
+      <section id="result" class="screen" hidden aria-labelledby="result-heading"><div class="result-top"><span class="eyebrow" id="result-label">30秒チャレンジ 結果</span><h2 id="result-heading">よくがんばった！</h2><p id="result-subtitle">またチャレンジして記録を伸ばそう。</p></div><div class="big-score"><span>正解数</span><strong id="final-score">0</strong><small id="final-unit">問</small></div><div class="results-row"><div><span>ミス</span><strong id="final-miss">0</strong></div><div><span>ベスト</span><strong id="final-best">0</strong></div></div><div class="result-actions"><button id="share" class="action-button share-button" type="button">結果をシェアする ↗</button><button id="retry" class="action-button replay-button" type="button">もう一度プレイ →</button><button id="back-home" class="text-button" type="button">ホームへ戻る</button></div><p class="result-footer">スクショでも結果を共有できます。</p></section>
+    </main>
+    <footer class="site-footer">© 逆指示パニック · 無料プロトタイプ</footer>
+  </div>
+  <script>
+/** Shared, dependency-free rules for 逆指示パニック. */
+const COLORS = Object.freeze([
+  { id: 'red', label: '赤', hex: '#ff5b75' },
+  { id: 'blue', label: '青', hex: '#4f9dff' },
+  { id: 'green', label: '緑', hex: '#41d8a4' },
+]);
+
+function seedFromString(value) {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function seededRandom(seed) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6D2B79F5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function choose(items, random) {
+  return items[Math.floor(random() * items.length)];
+}
+
+function shuffle(list, random) {
+  const result = [...list];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
+/** All questions are answerable from the three visible buttons; no color reliance alone. */
+function createRound(random = Math.random, number = 0, allowWait = true) {
+  const choices = shuffle(COLORS, random);
+  // はじめは簡単に、慣れたら新しいひっかけを少しずつ追加する。
+  const types = number < 2
+    ? ['direct', 'direct', 'not', 'position']
+    : number < 4
+      ? ['direct', 'not', 'position', 'word', 'ink']
+      : number < 5
+        ? ['direct', 'not', 'position', 'word', 'ink', 'neighbor', 'doubleNot']
+        : number < 8
+          ? ['direct', 'not', 'position', 'word', 'ink', 'neighbor', 'doubleNot']
+          : ['direct', 'not', 'position', 'word', 'ink', 'neighbor', 'doubleNot', 'excludeTwo'];
+  // 旧版の出題率（約11～13%）を約5%へ。30秒チャレンジ中の再出題も防ぐ。
+  // 「何も押すな」は序盤と今日の5問（0～4問目）には登場しない。
+  const type = number >= 5 && allowWait && random() < 0.05
+    ? 'wait'
+    : choose(types, random);
+  const selected = choose(COLORS, random);
+  const question = {
+    type,
+    choices,
+    title: '',
+    subtitle: '',
+    stimulus: null,
+    expected: [],
+    durationMs: Math.max(1850, 3200 - number * 35),
+  };
+  if (type === 'direct') {
+    question.title = `${selected.label}のボタンを押せ！`;
+    question.subtitle = '文字どおりに選ぼう';
+    question.expected = [selected.id];
+  } else if (type === 'not') {
+    question.title = `${selected.label}以外を押せ！`;
+    question.subtitle = '押してはいけない色に注意';
+    question.expected = COLORS.filter(c => c.id !== selected.id).map(c => c.id);
+  } else if (type === 'position') {
+    const position = choose([0, 1, 2], random);
+    question.title = ['一番左を押せ！', '真ん中を押せ！', '一番右を押せ！'][position];
+    question.subtitle = '色ではなく位置で選ぼう';
+    question.expected = [choices[position].id];
+  } else if (type === 'word' || type === 'ink') {
+    const ink = choose(COLORS.filter(c => c.id !== selected.id), random);
+    question.stimulus = { text: selected.label, ink: ink.hex };
+    question.title = type === 'word' ? '文字の意味の色を押せ！' : '文字の見た目の色を押せ！';
+    question.subtitle = type === 'word' ? '文字が何と書いてある？' : '文字が何色で描かれている？';
+    question.expected = [type === 'word' ? selected.id : ink.id];
+  } else if (type === 'neighbor') {
+    // 端の外を指さないよう、左右の隣が存在する組み合わせだけを生成する。
+    const anchorIndex = Math.floor(random() * choices.length);
+    const direction = anchorIndex === 0 ? 1 : anchorIndex === 2 ? -1 : choose([-1, 1], random);
+    const side = direction === -1 ? '左' : '右';
+    question.title = `${choices[anchorIndex].label}の${side}隣を押せ！`;
+    question.subtitle = 'ボタンの並び順を見よう';
+    question.expected = [choices[anchorIndex + direction].id];
+  } else if (type === 'doubleNot') {
+    question.title = `${selected.label}以外を押すな！`;
+    question.subtitle = '「押すな」の対象に注意';
+    question.expected = [selected.id];
+  } else if (type === 'excludeTwo') {
+    const forbidden = shuffle(COLORS.filter(c => c.id !== selected.id), random);
+    question.title = `${forbidden[0].label}と${forbidden[1].label}を押すな！`;
+    question.subtitle = '残った1色だけが正解';
+    question.expected = [selected.id];
+  } else if (type === 'wait') {
+    question.title = '何も押すな！';
+    question.subtitle = 'じっと待てば正解';
+  }
+  return question;
+}
+
+function isCorrectChoice(round, choiceId) {
+  return round.type !== 'wait' && round.expected.includes(choiceId);
+}
+
+/** Date in local time; today's five questions are shared by the same calendar date. */
+function localDateKey(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+const GAME_LENGTH_MS = 30000;
+const DAILY_QUESTIONS = 5;
+
+const $ = id => document.getElementById(id);
+const screens = ['home', 'game', 'result'];
+const current = { mode: null, round: null, question: 0, score: 0, misses: 0, streak: 0, untilEnd: 0, untilRound: 0, roundDuration: 0, random: Math.random, raf: 0, playing: false, pausedAt: 0, date: '', waitSeen: false, feedbackTimeout: 0, effectTimeout: 0 };
+const storage = {
+  get(key) { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch { return null; } },
+  set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* private/incognito mode */ } },
+};
+
+function showScreen(name) {
+  for (const screen of screens) $(screen).hidden = name !== screen;
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+function refreshHome() {
+  const challenge = storage.get('challengeBest.v1');
+  $('best-score').textContent = Number.isFinite(challenge?.score) ? `${challenge.score}問` : '—';
+  const daily = storage.get(`dailyBest.${localDateKey()}.v1`);
+  $('daily-best').textContent = Number.isFinite(daily?.score) ? `${daily.score}/${DAILY_QUESTIONS}問` : '未挑戦';
+}
+function clearFeedback() {
+  clearTimeout(current.feedbackTimeout);
+  $('feedback').textContent = '';
+  $('feedback').className = 'feedback';
+}
+function toast(message, good) {
+  clearFeedback();
+  $('feedback').textContent = message;
+  $('feedback').classList.add(good ? 'good' : 'bad');
+  current.feedbackTimeout = setTimeout(clearFeedback, 700);
+}
+// 正誤をカードの光と小さな記号で知らせる。音声・追加アセットは不要。
+function clearAnswerEffect() {
+  clearTimeout(current.effectTimeout);
+  $('prompt-card').classList.remove('effect-good', 'effect-bad');
+  $('effect-badge').className = 'effect-badge';
+  $('effect-badge').textContent = '';
+  $('score-display').classList.remove('score-pop');
+  $('streak-display').classList.remove('score-pop');
+}
+function showAnswerEffect(good) {
+  clearAnswerEffect();
+  const card = $('prompt-card');
+  const badge = $('effect-badge');
+  // 再連続回答でもCSSアニメーションを最初から再生する。
+  void card.offsetWidth;
+  card.classList.add(good ? 'effect-good' : 'effect-bad');
+  badge.classList.add(good ? 'good' : 'bad');
+  badge.textContent = good ? '✓' : '×';
+  if (good) {
+    $('score-display').classList.add('score-pop');
+    $('streak-display').classList.add('score-pop');
+  }
+  current.effectTimeout = setTimeout(clearAnswerEffect, 500);
+}
+// 画面が狭い場合だけ指示文の文字サイズを縮め、必ず1行に収める。
+// 「意味」「見た目」の1.18倍の強調はそのまま維持する。
+function fitPromptToOneLine() {
+  const prompt = $('prompt');
+  prompt.style.removeProperty('font-size');
+  const normalSize = parseFloat(getComputedStyle(prompt).fontSize);
+  let size = normalSize;
+  // レイアウト幅に合わせ、フォントサイズを0.5pxずつ縮小して調整する。
+  while (prompt.scrollWidth > prompt.clientWidth + 1 && size > 12) {
+    size = Math.max(12, size - 0.5);
+    prompt.style.fontSize = `${size}px`;
+  }
+}
+window.addEventListener('resize', fitPromptToOneLine);
+if (document.fonts?.ready) document.fonts.ready.then(fitPromptToOneLine);
+
+function nextRound(now = performance.now()) {
+  if (!current.playing) return;
+  if (current.mode === 'daily' && current.question >= DAILY_QUESTIONS) return finish();
+  current.question++;
+  current.round = createRound(current.random, current.question - 1, !current.waitSeen);
+  if (current.round.type === 'wait') current.waitSeen = true;
+  current.roundDuration = current.round.durationMs;
+  current.untilRound = now + current.roundDuration;
+  const r = current.round;
+  $('question-count').textContent = current.mode === 'daily' ? `Q${current.question}/${DAILY_QUESTIONS}` : `Q${current.question}`;
+  // 「意味」「見た目」だけを少し大きくして、素早く読み分けられるようにする。
+  if (r.type === 'word' || r.type === 'ink') {
+    const keyword = document.createElement('span');
+    keyword.className = 'prompt-keyword';
+    keyword.textContent = r.type === 'word' ? '意味' : '見た目';
+    $('prompt').replaceChildren('文字の', keyword, 'の色を押せ！');
+  } else {
+    $('prompt').textContent = r.title;
+  }
+  fitPromptToOneLine();
+  $('prompt-subtitle').textContent = r.subtitle;
+  $('stimulus').hidden = !r.stimulus;
+  if (r.stimulus) {
+    $('stimulus').textContent = r.stimulus.text;
+    $('stimulus').style.color = r.stimulus.ink;
+  }
+  $('wait-note').hidden = r.type !== 'wait';
+  $('answers').setAttribute('aria-label', r.type === 'wait' ? 'この問題では押さないでください' : '色を選択');
+  const buttons = [...$('answers').querySelectorAll('button')];
+  buttons.forEach((button, i) => {
+    const c = r.choices[i];
+    button.dataset.answer = c.id;
+    button.querySelector('span').textContent = c.label;
+    button.setAttribute('aria-label', `${i + 1}番目、${c.label}のボタン`);
+  });
+  $('score-display').textContent = current.score;
+  $('streak-display').textContent = current.streak;
+}
+function begin(mode) {
+  cancelAnimationFrame(current.raf);
+  clearFeedback();
+  clearAnswerEffect();
+  const now = performance.now();
+  current.mode = mode;
+  current.date = localDateKey();
+  current.random = mode === 'daily' ? seededRandom(seedFromString(`gyakushiji:${current.date}:v1`)) : Math.random;
+  current.score = 0;
+  current.misses = 0;
+  current.streak = 0;
+  current.question = 0;
+  current.waitSeen = false;
+  current.playing = true;
+  current.pausedAt = 0;
+  current.untilEnd = now + GAME_LENGTH_MS;
+  $('mode-caption').textContent = mode === 'daily' ? '今日の5問' : '30秒チャレンジ';
+  $('time-display').innerHTML = '30.0<small>秒</small>';
+  showScreen('game');
+  nextRound(now);
+  current.raf = requestAnimationFrame(tick);
+}
+function answer(value) {
+  if (!current.playing || document.hidden) return;
+  const now = performance.now();
+  if (now >= current.untilEnd || now >= current.untilRound) return; // handled on next frame
+  if (isCorrectChoice(current.round, value)) {
+    current.score++;
+    current.streak++;
+    toast(current.streak >= 3 ? `${current.streak}連続正解！` : '正解！', true);
+    showAnswerEffect(true);
+  } else {
+    fail('ちがう！ −1.8秒', now);
+    if (!current.playing) return;
+  }
+  nextRound(now);
+}
+function fail(message, now) {
+  current.misses++;
+  current.streak = 0;
+  current.untilEnd -= 1800;
+  if ('vibrate' in navigator) navigator.vibrate?.(35);
+  toast(message, false);
+  showAnswerEffect(false);
+  if (current.untilEnd <= now) finish();
+}
+function tick(now) {
+  if (!current.playing) return;
+  if (document.hidden) { current.raf = requestAnimationFrame(tick); return; }
+  const left = Math.max(0, current.untilEnd - now);
+  const roundLeft = Math.max(0, current.untilRound - now);
+  $('time-display').innerHTML = `${(left / 1000).toFixed(1)}<small>秒</small>`;
+  $('timer-fill').style.width = `${Math.min(100, left / GAME_LENGTH_MS * 100)}%`;
+  $('round-fill').style.width = `${Math.min(100, roundLeft / current.roundDuration * 100)}%`;
+  if (left <= 0) return finish();
+  if (roundLeft <= 0) {
+    if (current.round.type === 'wait') {
+      current.score++;
+      current.streak++;
+      toast('待てた！ 正解！', true);
+      showAnswerEffect(true);
+    } else {
+      fail('時間切れ！ −1.8秒', now);
+    }
+    if (current.playing) nextRound(now);
+  }
+  if (current.playing) current.raf = requestAnimationFrame(tick);
+}
+function finish() {
+  if (!current.playing) return;
+  current.playing = false;
+  cancelAnimationFrame(current.raf);
+  clearFeedback();
+  clearAnswerEffect();
+  const key = current.mode === 'daily' ? `dailyBest.${current.date}.v1` : 'challengeBest.v1';
+  const previous = storage.get(key);
+  const previousScore = Number.isFinite(previous?.score) ? previous.score : -1;
+  const best = Math.max(previousScore, current.score);
+  if (current.score > previousScore || (current.score === previousScore && current.misses < (previous?.misses ?? Infinity))) {
+    storage.set(key, { score: current.score, misses: current.misses, updatedAt: new Date().toISOString() });
+  }
+  $('result-label').textContent = current.mode === 'daily' ? `${current.date} 今日の5問 結果` : '30秒チャレンジ 結果';
+  $('result-heading').textContent = current.score > previousScore ? '自己ベスト更新！' : current.score > 0 ? 'ナイスチャレンジ！' : '次こそ成功！';
+  $('result-subtitle').textContent = current.mode === 'daily' ? '今日の問題は、誰が遊んでも同じです。' : '友達に何問正解したか自慢しよう。';
+  $('final-score').textContent = current.score;
+  $('final-miss').textContent = current.misses;
+  $('final-best').textContent = Math.max(best, 0);
+  $('final-unit').textContent = current.mode === 'daily' ? `/ ${DAILY_QUESTIONS} 問` : '問';
+  showScreen('result');
+}
+async function share() {
+  const label = current.mode === 'daily' ? `今日の5問（${current.date}）` : '30秒チャレンジ';
+  const text = `⚡逆指示パニック\n${label}: ${current.score}${current.mode === 'daily' ? `/${DAILY_QUESTIONS}` : ''}問正解！\nミス: ${current.misses}回\nあなたは何問できる？`;
+  const url = location.protocol.startsWith('http') ? location.href.split('#')[0] : '';
+  try {
+    if (navigator.share) await navigator.share({ text, ...(url ? { url } : {}) });
+    else if (navigator.clipboard) { await navigator.clipboard.writeText(`${text}${url ? `\n${url}` : ''}`); toast('結果をコピーしました！', true); }
+    else toast('スクリーンショットで共有してください', true);
+  } catch (err) { if (err?.name !== 'AbortError') toast('共有できませんでした。スクショをご利用ください', false); }
+}
+function home() { current.playing = false; cancelAnimationFrame(current.raf); clearFeedback(); clearAnswerEffect(); refreshHome(); showScreen('home'); }
+$('start-challenge').addEventListener('click', () => begin('challenge'));
+$('start-daily').addEventListener('click', () => begin('daily'));
+$('answers').addEventListener('click', event => { const button = event.target.closest('button[data-answer]'); if (button) answer(button.dataset.answer); });
+$('quit').addEventListener('click', home);
+$('back-home').addEventListener('click', home);
+$('retry').addEventListener('click', () => begin(current.mode));
+$('share').addEventListener('click', share);
+document.addEventListener('visibilitychange', () => {
+  if (!current.playing) return;
+  if (document.hidden) current.pausedAt = performance.now();
+  else if (current.pausedAt) {
+    const diff = performance.now() - current.pausedAt;
+    current.untilEnd += diff;
+    current.untilRound += diff;
+    current.pausedAt = 0;
+  }
+});
+// 単一HTML公開版: service workerは登録しない（他ファイルは不要）。
+refreshHome();
+
+</script>
+</body>
+</html>
