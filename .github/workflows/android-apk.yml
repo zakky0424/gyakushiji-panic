@@ -1,0 +1,45 @@
+name: Build Android test APK
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout game files
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Build Android APK
+        run: |
+          npm init -y
+          npm install --no-audit --no-fund @capacitor/core@8 @capacitor/cli@8 @capacitor/android@8
+          mkdir -p www
+          cp index.html manifest.json sw.js icon-192.png icon-512.png www/
+          npx cap init "Gyakushiji Panic" "io.github.zakky0424.gyakushijipanic" --web-dir www
+          npx cap add android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: gyakushiji-test-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
