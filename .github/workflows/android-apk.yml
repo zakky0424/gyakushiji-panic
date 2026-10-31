@@ -9,7 +9,6 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout game files
         uses: actions/checkout@v4
@@ -25,14 +24,39 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Build Android APK
+      - name: Build Android APK with share menu
         run: |
+          set -e
           npm init -y
-          npm install --no-audit --no-fund @capacitor/core@8 @capacitor/cli@8 @capacitor/android@8
+          npm install --no-audit --no-fund @capacitor/core@8 @capacitor/cli@8 @capacitor/android@8 @capacitor/share@8 esbuild@0.25
           mkdir -p www
           cp index.html manifest.json sw.js icon-192.png icon-512.png www/
+          cat > share-entry.js <<'EOF'
+          import { Share } from '@capacitor/share';
+          document.addEventListener('click', async (event) => {
+            if (!event.target.closest?.('#share')) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            event.stopPropagation();
+            const score = document.getElementById('final-score').textContent;
+            const misses = document.getElementById('final-miss').textContent;
+            const daily = document.getElementById('final-unit').textContent.includes('/');
+            const label = daily ? '今日の5問' : '30秒チャレンジ';
+            const count = daily ? `${score}/5` : score;
+            const text = `⚡逆指示パニック\n${label}: ${count}問正解！\nミス: ${misses}回\nあなたは何問できる？`;
+            const url = 'https://zakky0424.github.io/gyakushiji-panic/';
+            try {
+              await Share.share({ title: '逆指示パニック', text, url, dialogTitle: '結果をシェア' });
+            } catch (error) {
+              console.warn('Share cancelled or failed:', error);
+            }
+          }, true);
+          EOF
+          npx esbuild share-entry.js --bundle --format=iife --platform=browser --target=chrome100 --outfile=www/native-share.js
+          sed -i 's#</body>#<script src="./native-share.js"></script></body>#' www/index.html
           npx cap init "Gyakushiji Panic" "io.github.zakky0424.gyakushijipanic" --web-dir www
           npx cap add android
+          npx cap sync android
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
