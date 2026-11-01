@@ -24,15 +24,21 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Build Android APK with share menu
+      - name: Build test APK with share and demo ads
         run: |
           set -e
           npm init -y
-          npm install --no-audit --no-fund @capacitor/core@8 @capacitor/cli@8 @capacitor/android@8 @capacitor/share@8 esbuild@0.25
+          npm install --no-audit --no-fund @capacitor/core@8.6.0 @capacitor/cli@8.6.0 @capacitor/android@8.6.0 @capacitor/share@8 @capacitor-community/admob@8.2.1 esbuild@0.25
           mkdir -p www
           cp index.html manifest.json sw.js icon-192.png icon-512.png www/
-          cat > share-entry.js <<'EOF'
+          cat > native-entry.js <<'EOF'
           import { Share } from '@capacitor/share';
+          import { AdMob, AdmobConsentStatus, BannerAdSize, BannerAdPosition } from '@capacitor-community/admob';
+
+          const gameUrl = 'https://zakky0424.github.io/gyakushiji-panic/';
+          const bannerId = 'ca-app-pub-3940256099942544/6300978111';
+          const fullAdId = 'ca-app-pub-3940256099942544/1033173712';
+
           document.addEventListener('click', async (event) => {
             if (!event.target.closest?.('#share')) return;
             event.preventDefault();
@@ -41,22 +47,126 @@ jobs:
             const score = document.getElementById('final-score').textContent;
             const misses = document.getElementById('final-miss').textContent;
             const daily = document.getElementById('final-unit').textContent.includes('/');
-            const label = daily ? '今日の5問' : '30秒チャレンジ';
-            const count = daily ? `${score}/5` : score;
-            const text = `⚡逆指示パニック\n${label}: ${count}問正解！\nミス: ${misses}回\nあなたは何問できる？`;
-            const url = 'https://zakky0424.github.io/gyakushiji-panic/';
+            const text = `⚡逆指示パニック\n${daily ? '今日の5問' : '30秒チャレンジ'}: ${daily ? score + '/5' : score}問正解！\nミス: ${misses}回\nあなたは何問できる？`;
             try {
-              await Share.share({ title: '逆指示パニック', text, url, dialogTitle: '結果をシェア' });
+              await Share.share({ title: '逆指示パニック', text, url: gameUrl, dialogTitle: '結果をシェア' });
             } catch (error) {
-              console.warn('Share cancelled or failed:', error);
+              console.info('共有がキャンセルされたか失敗しました', error);
             }
           }, true);
+
+          let adsReady = false;
+          let bannerCreated = false;
+          let bannerVisible = false;
+          let interstitialLoaded = false;
+          let completed = 0;
+          let previousScreen = 'home';
+          let bannerQueue = Promise.resolve();
+
+          function screen() {
+            return ['home', 'game', 'result'].find((id) => !document.getElementById(id).hidden);
+          }
+
+          async function prepareFullAd() {
+            if (!adsReady || interstitialLoaded) return;
+            try {
+              await AdMob.prepareInterstitial({ adId: fullAdId, isTesting: true });
+              interstitialLoaded = true;
+            } catch (error) {
+              console.warn('テスト全画面広告の準備失敗', error);
+            }
+          }
+
+          function updateBanner() {
+            bannerQueue = bannerQueue.then(async () => {
+              if (!adsReady) return;
+              const show = screen() === 'home';
+              if (show && !bannerVisible) {
+                if (bannerCreated) {
+                  await AdMob.resumeBanner();
+                } else {
+                  await AdMob.showBanner({
+                    adId: bannerId, adSize: BannerAdSize.BANNER,
+                    position: BannerAdPosition.BOTTOM_CENTER,
+                    isTesting: true
+                  });
+                  bannerCreated = true;
+                }
+                bannerVisible = true;
+                document.body.classList.add('native-banner');
+              } else if (!show && bannerVisible) {
+                await AdMob.hideBanner();
+                bannerVisible = false;
+                document.body.classList.remove('native-banner');
+              }
+            }).catch((error) => console.warn('バナー広告の切替失敗', error));
+          }
+
+          function onScreenChanged() {
+            const now = screen();
+            if (now === previousScreen) return;
+            previousScreen = now;
+            updateBanner();
+            if (now === 'result') {
+              completed += 1;
+              if (completed % 3 === 0) {
+                setTimeout(async () => {
+                  if (screen() !== 'result' || !interstitialLoaded) return;
+                  interstitialLoaded = false;
+                  try { await AdMob.showInterstitial(); }
+                  catch (error) { console.warn('テスト全画面広告の表示失敗', error); }
+                  finally { prepareFullAd(); }
+                }, 1200);
+              }
+            }
+          }
+
+          async function startDemoAds() {
+            try {
+              let consent = await AdMob.requestConsentInfo();
+              if (consent.isConsentFormAvailable && consent.status === AdmobConsentStatus.REQUIRED) {
+                consent = await AdMob.showConsentForm();
+              }
+              if (!consent.canRequestAds) {
+                console.info('同意状態により広告リクエストを行いません');
+                return;
+              }
+              await AdMob.initialize();
+              adsReady = true;
+              const observer = new MutationObserver(onScreenChanged);
+              for (const id of ['home', 'game', 'result']) {
+                observer.observe(document.getElementById(id), { attributes: true, attributeFilter: ['hidden'] });
+              }
+              updateBanner();
+              prepareFullAd();
+            } catch (error) {
+              console.warn('テスト広告の初期化失敗（ゲームはそのまま遊べます）', error);
+            }
+          }
+          window.addEventListener('load', () => setTimeout(startDemoAds, 600));
           EOF
-          npx esbuild share-entry.js --bundle --format=iife --platform=browser --target=chrome100 --outfile=www/native-share.js
-          sed -i 's#</body>#<script src="./native-share.js"></script></body>#' www/index.html
+          npx esbuild native-entry.js --bundle --format=iife --platform=browser --target=chrome100 --outfile=www/native-entry.js
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('www/index.html')
+          s = p.read_text()
+          assert '</body>' in s
+          s = s.replace('</body>', '''<style>body.native-banner .shell{padding-bottom:calc(85px + env(safe-area-inset-bottom))}</style><script src="./native-entry.js"></script></body>''', 1)
+          p.write_text(s)
+          PY
           npx cap init "Gyakushiji Panic" "io.github.zakky0424.gyakushijipanic" --web-dir www
           npx cap add android
           npx cap sync android
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('android/app/src/main/AndroidManifest.xml')
+          s = p.read_text()
+          metadata = '<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-3940256099942544~3347511713" />'
+          s, count = re.subn(r'(<application\b[^>]*>)', lambda m: m.group(1) + '\n        ' + metadata, s, count=1)
+          assert count == 1, 'AndroidManifestのapplication要素が見つかりません'
+          p.write_text(s)
+          PY
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
