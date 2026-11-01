@@ -1,4 +1,4 @@
-name: Build Android test APK (v1.0 RC test)
+name: Build Android test APK (v1.0.1 UI fix)
 
 on:
   workflow_dispatch:
@@ -270,7 +270,7 @@ jobs:
           # 共有機能・広告処理は変更せず、Android APKでの表示だけ補正する。
           assert s.count('無料試作版 v0.7') == 1
           assert s.count('広告なし（試作中）') == 1
-          s = s.replace('無料試作版 v0.7', 'Androidテスト版 v1.0（課金テスト）')
+          s = s.replace('無料試作版 v0.7', 'テスト版 v1.0.1')
           s = s.replace('広告なし（試作中）', 'テスト広告・テスト課金（実際の請求なし）')
           assert s.count('<div class="stats-strip">') == 1
           purchase_ui = ('''
@@ -280,13 +280,28 @@ jobs:
             <p id="purchase-status" class="purchase-status" aria-live="polite">購入情報を確認しています…</p>
           </div>
           ''')
-          s = s.replace('<div class="stats-strip">', purchase_ui + '<div class="stats-strip">', 1)
+          # Keep scores visible before purchase controls, above the fixed native banner.
+          # The stats strip contains nested tags, so match through the next section boundary.
+          marker = '<p class="disclaimer">'
+          assert s.count(marker) == 1
+          s = s.replace(marker, purchase_ui + marker, 1)
           css = '''
           <style>
             .purchase-panel {margin: 0 0 15px; padding: 13px; border: 1px solid #394467; border-radius: 16px; background: #181d35; text-align: center}
             .purchase-button {width: 100%; border: 1px solid #927aff; background: #493c87; padding: 12px 10px; color: white; border-radius: 12px; font-size: 13px; font-weight: 800}
             .restore-button {border: 0; background: none; color: #bfb2ff; padding: 12px; font-size: 12px; font-weight: 700}
             .purchase-status {font-size: 11px; color: #bec6e8; margin: 4px 0 0; line-height: 1.5}
+            /* Keep header title on one line on narrow phones. */
+            body.native-app .site-header { flex-wrap: wrap; column-gap: 7px; row-gap: 7px; }
+            body.native-app .brand { min-width: 0; flex: 0 1 auto; gap: 7px; }
+            body.native-app .brand-icon { width: 36px; height: 36px; font-size: 26px; flex: 0 0 auto; }
+            body.native-app .brand-title { white-space: nowrap; font-size: clamp(15px, 4.3vw, 19px); letter-spacing: -.06em; }
+            body.native-app .brand-sub { font-size: 10px; }
+            body.native-app .version { flex: 0 0 auto; margin-left: auto; padding: 6px 8px; font-size: 10px; }
+            body.native-app #home .stats-strip { margin-bottom: 14px; }
+            body.native-app #home .purchase-panel { margin-top: 0; }
+            /* Allow content at the bottom of the page to scroll above the fixed banner. */
+            body.native-app.native-banner #home { padding-bottom: 95px; }
             /* Capacitor 8 SystemBars のセーフエリア値。通常のWeb/PWA版には影響しない */
             body.native-app .shell {
               padding-top: calc(19px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
