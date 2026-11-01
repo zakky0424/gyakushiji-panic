@@ -1,4 +1,4 @@
-name: Build Android test APK (v0.9.1)
+name: Build Android test APK (v1.0 RC test)
 
 on:
   workflow_dispatch:
@@ -24,15 +24,25 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Build test APK with share, demo ads, and safe areas
+      - name: Build Android test APK with RevenueCat Test Store
+        env:
+          REVENUECAT_TEST_API_KEY: ${{ secrets.REVENUECAT_TEST_API_KEY }}
         run: |
-          set -e
+          set -eu
+          if [ -z "${REVENUECAT_TEST_API_KEY:-}" ]; then
+            echo '::error::GitHub Secret REVENUECAT_TEST_API_KEY is missing'; exit 1
+          fi
+          case "$REVENUECAT_TEST_API_KEY" in
+            test_*) ;;
+            *) echo '::error::Use the RevenueCat test_ Public SDK key for this debug APK'; exit 1 ;;
+          esac
           npm init -y
-          npm install --no-audit --no-fund @capacitor/core@8.6.0 @capacitor/cli@8.6.0 @capacitor/android@8.6.0 @capacitor/share@8 @capacitor-community/admob@8.2.1 esbuild@0.25
+          npm install --no-audit --no-fund @capacitor/core@8.6.0 @capacitor/cli@8.6.0 @capacitor/android@8.6.0 @capacitor/share@8 @capacitor-community/admob@8.2.1 @revenuecat/purchases-capacitor@13.7.6 esbuild@0.25
           mkdir -p www
           cp index.html manifest.json sw.js icon-192.png icon-512.png www/
           cat > native-entry.js <<'EOF'
           import { Share } from '@capacitor/share';
+          import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
           import { SystemBars, SystemBarsStyle } from '@capacitor/core';
           import { AdMob, AdmobConsentStatus, BannerAdSize, BannerAdPosition } from '@capacitor-community/admob';
 
@@ -41,6 +51,7 @@ jobs:
           SystemBars.setStyle({ style: SystemBarsStyle.Dark })
             .catch(error => console.warn('システムバー設定をスキップ', error));
 
+          const RC_TEST_API_KEY = '__REVENUECAT_TEST_KEY_PLACEHOLDER__';
           const gameUrl = 'https://zakky0424.github.io/gyakushiji-panic/';
           const bannerId = 'ca-app-pub-3940256099942544/6300978111';
           const fullAdId = 'ca-app-pub-3940256099942544/1033173712';
@@ -61,6 +72,11 @@ jobs:
             }
           }, true);
 
+          let adFree = false;
+          let billingVerified = false;
+          let purchaseReady = false;
+          let purchasePackage = null;
+          let purchaseBusy = false;
           let adsReady = false;
           let bannerCreated = false;
           let bannerVisible = false;
@@ -74,7 +90,7 @@ jobs:
           }
 
           async function prepareFullAd() {
-            if (!adsReady || interstitialLoaded) return;
+            if (!adsReady || adFree || interstitialLoaded) return;
             try {
               await AdMob.prepareInterstitial({ adId: fullAdId, isTesting: true });
               interstitialLoaded = true;
@@ -86,7 +102,7 @@ jobs:
           function updateBanner() {
             bannerQueue = bannerQueue.then(async () => {
               if (!adsReady) return;
-              const show = screen() === 'home';
+              const show = !adFree && screen() === 'home';
               if (show && !bannerVisible) {
                 if (bannerCreated) {
                   await AdMob.resumeBanner();
@@ -113,11 +129,11 @@ jobs:
             if (now === previousScreen) return;
             previousScreen = now;
             updateBanner();
-            if (now === 'result') {
+            if (now === 'result' && !adFree) {
               completed += 1;
               if (completed % 3 === 0) {
                 setTimeout(async () => {
-                  if (screen() !== 'result' || !interstitialLoaded) return;
+                  if (screen() !== 'result' || adFree || !interstitialLoaded) return;
                   interstitialLoaded = false;
                   try { await AdMob.showInterstitial(); }
                   catch (error) { console.warn('テスト全画面広告の表示失敗', error); }
@@ -128,6 +144,7 @@ jobs:
           }
 
           async function startDemoAds() {
+            if (!billingVerified || adFree) return;
             try {
               let consent = await AdMob.requestConsentInfo();
               if (consent.isConsentFormAvailable && consent.status === AdmobConsentStatus.REQUIRED) {
@@ -149,8 +166,101 @@ jobs:
               console.warn('テスト広告の初期化失敗（ゲームはそのまま遊べます）', error);
             }
           }
-          window.addEventListener('load', () => setTimeout(startDemoAds, 600));
+          const buyButton = document.getElementById('purchase-ads');
+          const restoreButton = document.getElementById('restore-ads');
+          const purchaseStatus = document.getElementById('purchase-status');
+
+          function markPurchaseStatus(message) { purchaseStatus.textContent = message; }
+          function applyCustomerInfo(customerInfo) {
+            billingVerified = true;
+            adFree = Boolean(customerInfo?.entitlements?.active?.ad_free);
+            buyButton.hidden = adFree;
+            restoreButton.hidden = adFree;
+            markPurchaseStatus(adFree
+              ? '広告非表示が有効になりました。ありがとうございました！'
+              : 'テスト購入は実際の決済ではありません。');
+            updateBanner();
+          }
+
+          async function initPurchases() {
+            try {
+              await Purchases.setLogLevel({ level: LOG_LEVEL.WARN });
+              await Purchases.configure({ apiKey: RC_TEST_API_KEY });
+              const { customerInfo } = await Purchases.getCustomerInfo();
+              applyCustomerInfo(customerInfo);
+              const { current } = await Purchases.getOfferings();
+              purchasePackage = current?.availablePackages?.find((item) =>
+                item.product?.identifier === 'lifetime') || current?.lifetime || null;
+              purchaseReady = Boolean(purchasePackage);
+              buyButton.disabled = !purchaseReady;
+              restoreButton.disabled = false;
+              if (!purchaseReady && !adFree) {
+                markPurchaseStatus('テスト商品を読み込めませんでした。通信状態や商品設定をご確認ください。');
+              }
+            } catch (error) {
+              // Billing unverified => no ads, preventing a paid user from seeing ads on a transient error.
+              console.warn('RevenueCat の初期化・読込に失敗', error);
+              if (!billingVerified) {
+                markPurchaseStatus('購入情報に接続できません。ネット接続を確認してください。');
+              }
+            }
+          }
+
+          buyButton.addEventListener('click', async () => {
+            if (purchaseBusy || !purchaseReady || adFree) return;
+            purchaseBusy = true;
+            buyButton.disabled = true;
+            markPurchaseStatus('テスト購入画面を開いています…');
+            try {
+              const { customerInfo } = await Purchases.purchasePackage({ aPackage: purchasePackage });
+              applyCustomerInfo(customerInfo);
+              if (!adFree) markPurchaseStatus('購入を確認できませんでした。再度お試しください。');
+            } catch (error) {
+              if (error?.userCancelled) markPurchaseStatus('購入をキャンセルしました。');
+              else {
+                console.warn('テスト購入に失敗', error);
+                markPurchaseStatus('購入に失敗しました。通信状況を確認してください。');
+              }
+            } finally {
+              purchaseBusy = false;
+              buyButton.disabled = adFree || !purchaseReady;
+            }
+          });
+
+          restoreButton.addEventListener('click', async () => {
+            if (purchaseBusy) return;
+            purchaseBusy = true;
+            restoreButton.disabled = true;
+            markPurchaseStatus('購入状態を復元しています…');
+            try {
+              const { customerInfo } = await Purchases.restorePurchases();
+              applyCustomerInfo(customerInfo);
+              if (!adFree) markPurchaseStatus('このユーザーの購入履歴は見つかりませんでした。');
+            } catch (error) {
+              console.warn('購入の復元に失敗', error);
+              markPurchaseStatus('復元できませんでした。通信状態を確認してください。');
+            } finally {
+              purchaseBusy = false;
+              restoreButton.disabled = false;
+            }
+          });
+
+          window.addEventListener('load', () => setTimeout(async () => {
+            // RevenueCat purchase status must be checked before initializing advertisements.
+            await initPurchases();
+            await startDemoAds();
+          }, 600));
           EOF
+          python3 - <<'PY'
+          from pathlib import Path
+          import os, json
+          p = Path('native-entry.js')
+          text = p.read_text(encoding='utf-8')
+          placeholder = "'__REVENUECAT_TEST_KEY_PLACEHOLDER__'"
+          assert text.count(placeholder) == 1
+          text = text.replace(placeholder, json.dumps(os.environ['REVENUECAT_TEST_API_KEY']))
+          p.write_text(text, encoding='utf-8')
+          PY
           npx esbuild native-entry.js --bundle --format=iife --platform=browser --target=chrome100 --outfile=www/native-entry.js
           python3 - <<'PY'
           from pathlib import Path
@@ -160,10 +270,23 @@ jobs:
           # 共有機能・広告処理は変更せず、Android APKでの表示だけ補正する。
           assert s.count('無料試作版 v0.7') == 1
           assert s.count('広告なし（試作中）') == 1
-          s = s.replace('無料試作版 v0.7', 'Androidテスト版 v0.9.1')
-          s = s.replace('広告なし（試作中）', 'テスト広告表示中')
+          s = s.replace('無料試作版 v0.7', 'Androidテスト版 v1.0（課金テスト）')
+          s = s.replace('広告なし（試作中）', 'テスト広告・テスト課金（実際の請求なし）')
+          assert s.count('<div class="stats-strip">') == 1
+          purchase_ui = ('''
+          <div id="purchase-panel" class="purchase-panel">
+            <button id="purchase-ads" class="purchase-button" type="button" disabled>広告を非表示にする（テスト購入）</button>
+            <button id="restore-ads" class="restore-button" type="button" disabled>購入を復元する</button>
+            <p id="purchase-status" class="purchase-status" aria-live="polite">購入情報を確認しています…</p>
+          </div>
+          ''')
+          s = s.replace('<div class="stats-strip">', purchase_ui + '<div class="stats-strip">', 1)
           css = '''
           <style>
+            .purchase-panel {margin: 0 0 15px; padding: 13px; border: 1px solid #394467; border-radius: 16px; background: #181d35; text-align: center}
+            .purchase-button {width: 100%; border: 1px solid #927aff; background: #493c87; padding: 12px 10px; color: white; border-radius: 12px; font-size: 13px; font-weight: 800}
+            .restore-button {border: 0; background: none; color: #bfb2ff; padding: 12px; font-size: 12px; font-weight: 700}
+            .purchase-status {font-size: 11px; color: #bec6e8; margin: 4px 0 0; line-height: 1.5}
             /* Capacitor 8 SystemBars のセーフエリア値。通常のWeb/PWA版には影響しない */
             body.native-app .shell {
               padding-top: calc(19px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
