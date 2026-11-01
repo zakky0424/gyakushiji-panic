@@ -1,4 +1,4 @@
-name: Build Android test APK (v1.0.1 UI fix)
+name: Build Android test APK (v1.0.2 layout fix)
 
 on:
   workflow_dispatch:
@@ -46,7 +46,6 @@ jobs:
           import { SystemBars, SystemBarsStyle } from '@capacitor/core';
           import { AdMob, AdmobConsentStatus, BannerAdSize, BannerAdPosition } from '@capacitor-community/admob';
 
-          // Android 16+ 対応：ステータスバーのアイコンを明るく保つ。
           document.body.classList.add('native-app');
           SystemBars.setStyle({ style: SystemBarsStyle.Dark })
             .catch(error => console.warn('システムバー設定をスキップ', error));
@@ -66,7 +65,12 @@ jobs:
             const daily = document.getElementById('final-unit').textContent.includes('/');
             const text = `⚡逆指示パニック\n${daily ? '今日の5問' : '30秒チャレンジ'}: ${daily ? score + '/5' : score}問正解！\nミス: ${misses}回\nあなたは何問できる？`;
             try {
-              await Share.share({ title: '逆指示パニック', text, url: gameUrl, dialogTitle: '結果をシェア' });
+              await Share.share({
+                title: '逆指示パニック',
+                text,
+                url: gameUrl,
+                dialogTitle: '結果をシェア'
+              });
             } catch (error) {
               console.info('共有がキャンセルされたか失敗しました', error);
             }
@@ -86,13 +90,18 @@ jobs:
           let bannerQueue = Promise.resolve();
 
           function screen() {
-            return ['home', 'game', 'result'].find((id) => !document.getElementById(id).hidden);
+            return ['home', 'game', 'result'].find((id) =>
+              !document.getElementById(id).hidden
+            );
           }
 
           async function prepareFullAd() {
             if (!adsReady || adFree || interstitialLoaded) return;
             try {
-              await AdMob.prepareInterstitial({ adId: fullAdId, isTesting: true });
+              await AdMob.prepareInterstitial({
+                adId: fullAdId,
+                isTesting: true
+              });
               interstitialLoaded = true;
             } catch (error) {
               console.warn('テスト全画面広告の準備失敗', error);
@@ -103,12 +112,14 @@ jobs:
             bannerQueue = bannerQueue.then(async () => {
               if (!adsReady) return;
               const show = !adFree && screen() === 'home';
+
               if (show && !bannerVisible) {
                 if (bannerCreated) {
                   await AdMob.resumeBanner();
                 } else {
                   await AdMob.showBanner({
-                    adId: bannerId, adSize: BannerAdSize.BANNER,
+                    adId: bannerId,
+                    adSize: BannerAdSize.BANNER,
                     position: BannerAdPosition.BOTTOM_CENTER,
                     isTesting: true
                   });
@@ -116,12 +127,15 @@ jobs:
                 }
                 bannerVisible = true;
                 document.body.classList.add('native-banner');
+
               } else if (!show && bannerVisible) {
                 await AdMob.hideBanner();
                 bannerVisible = false;
                 document.body.classList.remove('native-banner');
               }
-            }).catch((error) => console.warn('バナー広告の切替失敗', error));
+            }).catch((error) =>
+              console.warn('バナー広告の切替失敗', error)
+            );
           }
 
           function onScreenChanged() {
@@ -129,15 +143,25 @@ jobs:
             if (now === previousScreen) return;
             previousScreen = now;
             updateBanner();
+
             if (now === 'result' && !adFree) {
               completed += 1;
               if (completed % 3 === 0) {
                 setTimeout(async () => {
-                  if (screen() !== 'result' || adFree || !interstitialLoaded) return;
+                  if (
+                    screen() !== 'result' ||
+                    adFree ||
+                    !interstitialLoaded
+                  ) return;
+
                   interstitialLoaded = false;
-                  try { await AdMob.showInterstitial(); }
-                  catch (error) { console.warn('テスト全画面広告の表示失敗', error); }
-                  finally { prepareFullAd(); }
+                  try {
+                    await AdMob.showInterstitial();
+                  } catch (error) {
+                    console.warn('テスト全画面広告の表示失敗', error);
+                  } finally {
+                    prepareFullAd();
+                  }
                 }, 1200);
               }
             }
@@ -147,79 +171,143 @@ jobs:
             if (!billingVerified || adFree) return;
             try {
               let consent = await AdMob.requestConsentInfo();
-              if (consent.isConsentFormAvailable && consent.status === AdmobConsentStatus.REQUIRED) {
+
+              if (
+                consent.isConsentFormAvailable &&
+                consent.status === AdmobConsentStatus.REQUIRED
+              ) {
                 consent = await AdMob.showConsentForm();
               }
+
               if (!consent.canRequestAds) {
                 console.info('同意状態により広告リクエストを行いません');
                 return;
               }
+
               await AdMob.initialize();
               adsReady = true;
+
               const observer = new MutationObserver(onScreenChanged);
               for (const id of ['home', 'game', 'result']) {
-                observer.observe(document.getElementById(id), { attributes: true, attributeFilter: ['hidden'] });
+                observer.observe(
+                  document.getElementById(id),
+                  {
+                    attributes: true,
+                    attributeFilter: ['hidden']
+                  }
+                );
               }
+
               updateBanner();
               prepareFullAd();
             } catch (error) {
-              console.warn('テスト広告の初期化失敗（ゲームはそのまま遊べます）', error);
+              console.warn(
+                'テスト広告の初期化失敗（ゲームはそのまま遊べます）',
+                error
+              );
             }
           }
+
           const buyButton = document.getElementById('purchase-ads');
           const restoreButton = document.getElementById('restore-ads');
           const purchaseStatus = document.getElementById('purchase-status');
 
-          function markPurchaseStatus(message) { purchaseStatus.textContent = message; }
+          function markPurchaseStatus(message) {
+            purchaseStatus.textContent = message;
+          }
+
           function applyCustomerInfo(customerInfo) {
             billingVerified = true;
-            adFree = Boolean(customerInfo?.entitlements?.active?.ad_free);
+            adFree = Boolean(
+              customerInfo?.entitlements?.active?.ad_free
+            );
+
             buyButton.hidden = adFree;
             restoreButton.hidden = adFree;
-            markPurchaseStatus(adFree
-              ? '広告非表示が有効になりました。ありがとうございました！'
-              : 'テスト購入は実際の決済ではありません。');
+
+            markPurchaseStatus(
+              adFree
+                ? '広告非表示が有効になりました。ありがとうございました！'
+                : 'テスト購入は実際の決済ではありません。'
+            );
+
             updateBanner();
           }
 
           async function initPurchases() {
             try {
-              await Purchases.setLogLevel({ level: LOG_LEVEL.WARN });
-              await Purchases.configure({ apiKey: RC_TEST_API_KEY });
-              const { customerInfo } = await Purchases.getCustomerInfo();
+              await Purchases.setLogLevel({
+                level: LOG_LEVEL.WARN
+              });
+
+              await Purchases.configure({
+                apiKey: RC_TEST_API_KEY
+              });
+
+              const { customerInfo } =
+                await Purchases.getCustomerInfo();
+
               applyCustomerInfo(customerInfo);
-              const { current } = await Purchases.getOfferings();
-              purchasePackage = current?.availablePackages?.find((item) =>
-                item.product?.identifier === 'lifetime') || current?.lifetime || null;
+
+              const { current } =
+                await Purchases.getOfferings();
+
+              purchasePackage =
+                current?.availablePackages?.find((item) =>
+                  item.product?.identifier === 'lifetime'
+                ) || current?.lifetime || null;
+
               purchaseReady = Boolean(purchasePackage);
               buyButton.disabled = !purchaseReady;
               restoreButton.disabled = false;
+
               if (!purchaseReady && !adFree) {
-                markPurchaseStatus('テスト商品を読み込めませんでした。通信状態や商品設定をご確認ください。');
+                markPurchaseStatus(
+                  'テスト商品を読み込めませんでした。通信状態や商品設定をご確認ください。'
+                );
               }
             } catch (error) {
-              // Billing unverified => no ads, preventing a paid user from seeing ads on a transient error.
-              console.warn('RevenueCat の初期化・読込に失敗', error);
+              console.warn(
+                'RevenueCat の初期化・読込に失敗',
+                error
+              );
+
               if (!billingVerified) {
-                markPurchaseStatus('購入情報に接続できません。ネット接続を確認してください。');
+                markPurchaseStatus(
+                  '購入情報に接続できません。ネット接続を確認してください。'
+                );
               }
             }
           }
 
           buyButton.addEventListener('click', async () => {
             if (purchaseBusy || !purchaseReady || adFree) return;
+
             purchaseBusy = true;
             buyButton.disabled = true;
             markPurchaseStatus('テスト購入画面を開いています…');
+
             try {
-              const { customerInfo } = await Purchases.purchasePackage({ aPackage: purchasePackage });
+              const { customerInfo } =
+                await Purchases.purchasePackage({
+                  aPackage: purchasePackage
+                });
+
               applyCustomerInfo(customerInfo);
-              if (!adFree) markPurchaseStatus('購入を確認できませんでした。再度お試しください。');
+
+              if (!adFree) {
+                markPurchaseStatus(
+                  '購入を確認できませんでした。再度お試しください。'
+                );
+              }
             } catch (error) {
-              if (error?.userCancelled) markPurchaseStatus('購入をキャンセルしました。');
-              else {
+              if (error?.userCancelled) {
+                markPurchaseStatus('購入をキャンセルしました。');
+              } else {
                 console.warn('テスト購入に失敗', error);
-                markPurchaseStatus('購入に失敗しました。通信状況を確認してください。');
+                markPurchaseStatus(
+                  '購入に失敗しました。通信状況を確認してください。'
+                );
               }
             } finally {
               purchaseBusy = false;
@@ -229,105 +317,270 @@ jobs:
 
           restoreButton.addEventListener('click', async () => {
             if (purchaseBusy) return;
+
             purchaseBusy = true;
             restoreButton.disabled = true;
             markPurchaseStatus('購入状態を復元しています…');
+
             try {
-              const { customerInfo } = await Purchases.restorePurchases();
+              const { customerInfo } =
+                await Purchases.restorePurchases();
+
               applyCustomerInfo(customerInfo);
-              if (!adFree) markPurchaseStatus('このユーザーの購入履歴は見つかりませんでした。');
+
+              if (!adFree) {
+                markPurchaseStatus(
+                  'このユーザーの購入履歴は見つかりませんでした。'
+                );
+              }
             } catch (error) {
               console.warn('購入の復元に失敗', error);
-              markPurchaseStatus('復元できませんでした。通信状態を確認してください。');
+              markPurchaseStatus(
+                '復元できませんでした。通信状態を確認してください。'
+              );
             } finally {
               purchaseBusy = false;
               restoreButton.disabled = false;
             }
           });
 
-          window.addEventListener('load', () => setTimeout(async () => {
-            // RevenueCat purchase status must be checked before initializing advertisements.
-            await initPurchases();
-            await startDemoAds();
-          }, 600));
+          window.addEventListener('load', () =>
+            setTimeout(async () => {
+              await initPurchases();
+              await startDemoAds();
+            }, 600)
+          );
           EOF
+
           python3 - <<'PY'
           from pathlib import Path
           import os, json
+
           p = Path('native-entry.js')
           text = p.read_text(encoding='utf-8')
           placeholder = "'__REVENUECAT_TEST_KEY_PLACEHOLDER__'"
+
           assert text.count(placeholder) == 1
-          text = text.replace(placeholder, json.dumps(os.environ['REVENUECAT_TEST_API_KEY']))
+          text = text.replace(
+            placeholder,
+            json.dumps(os.environ['REVENUECAT_TEST_API_KEY'])
+          )
           p.write_text(text, encoding='utf-8')
           PY
+
           npx esbuild native-entry.js --bundle --format=iife --platform=browser --target=chrome100 --outfile=www/native-entry.js
+
           python3 - <<'PY'
           from pathlib import Path
+
           p = Path('www/index.html')
           s = p.read_text()
+
           assert '</body>' in s
-          # 共有機能・広告処理は変更せず、Android APKでの表示だけ補正する。
           assert s.count('無料試作版 v0.7') == 1
           assert s.count('広告なし（試作中）') == 1
-          s = s.replace('無料試作版 v0.7', 'テスト版 v1.0.1')
-          s = s.replace('広告なし（試作中）', 'テスト広告・テスト課金（実際の請求なし）')
+
+          s = s.replace(
+            '無料試作版 v0.7',
+            'テスト版 v1.0.2'
+          )
+          s = s.replace(
+            '広告なし（試作中）',
+            'テスト広告・テスト課金（実際の請求なし）'
+          )
+
           assert s.count('<div class="stats-strip">') == 1
-          purchase_ui = ('''
+
+          purchase_ui = '''
           <div id="purchase-panel" class="purchase-panel">
             <button id="purchase-ads" class="purchase-button" type="button" disabled>広告を非表示にする（テスト購入）</button>
             <button id="restore-ads" class="restore-button" type="button" disabled>購入を復元する</button>
             <p id="purchase-status" class="purchase-status" aria-live="polite">購入情報を確認しています…</p>
           </div>
-          ''')
-          # Keep scores visible before purchase controls, above the fixed native banner.
-          # The stats strip contains nested tags, so match through the next section boundary.
+          '''
+
           marker = '<p class="disclaimer">'
           assert s.count(marker) == 1
           s = s.replace(marker, purchase_ui + marker, 1)
+
           css = '''
           <style>
-            .purchase-panel {margin: 0 0 15px; padding: 13px; border: 1px solid #394467; border-radius: 16px; background: #181d35; text-align: center}
-            .purchase-button {width: 100%; border: 1px solid #927aff; background: #493c87; padding: 12px 10px; color: white; border-radius: 12px; font-size: 13px; font-weight: 800}
-            .restore-button {border: 0; background: none; color: #bfb2ff; padding: 12px; font-size: 12px; font-weight: 700}
-            .purchase-status {font-size: 11px; color: #bec6e8; margin: 4px 0 0; line-height: 1.5}
-            /* Keep header title on one line on narrow phones. */
-            body.native-app .site-header { flex-wrap: wrap; column-gap: 7px; row-gap: 7px; }
-            body.native-app .brand { min-width: 0; flex: 0 1 auto; gap: 7px; }
-            body.native-app .brand-icon { width: 36px; height: 36px; font-size: 26px; flex: 0 0 auto; }
-            body.native-app .brand-title { white-space: nowrap; font-size: clamp(15px, 4.3vw, 19px); letter-spacing: -.06em; }
-            body.native-app .brand-sub { font-size: 10px; }
-            body.native-app .version { flex: 0 0 auto; margin-left: auto; padding: 6px 8px; font-size: 10px; }
-            body.native-app #home .stats-strip { margin-bottom: 14px; }
-            body.native-app #home .purchase-panel { margin-top: 0; }
-            /* Allow content at the bottom of the page to scroll above the fixed banner. */
-            body.native-app.native-banner #home { padding-bottom: 95px; }
-            /* Capacitor 8 SystemBars のセーフエリア値。通常のWeb/PWA版には影響しない */
-            body.native-app .shell {
-              padding-top: calc(19px + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)));
-              padding-bottom: calc(18px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+            .purchase-panel {
+              margin: 0 0 10px;
+              padding: 9px;
+              border: 1px solid #394467;
+              border-radius: 16px;
+              background: #181d35;
+              text-align: center;
             }
+
+            .purchase-button {
+              width: 100%;
+              border: 1px solid #927aff;
+              background: #493c87;
+              padding: 10px 8px;
+              color: white;
+              border-radius: 12px;
+              font-size: 13px;
+              font-weight: 800;
+            }
+
+            .restore-button {
+              border: 0;
+              background: none;
+              color: #bfb2ff;
+              padding: 8px 10px;
+              font-size: 12px;
+              font-weight: 700;
+            }
+
+            .purchase-status {
+              font-size: 11px;
+              color: #bec6e8;
+              margin: 4px 0 0;
+              line-height: 1.5;
+            }
+
+            body.native-app .site-header {
+              flex-wrap: wrap;
+              column-gap: 7px;
+              row-gap: 7px;
+            }
+
+            body.native-app .brand {
+              min-width: 0;
+              flex: 0 1 auto;
+              gap: 7px;
+            }
+
+            body.native-app .brand-icon {
+              width: 36px;
+              height: 36px;
+              font-size: 26px;
+              flex: 0 0 auto;
+            }
+
+            body.native-app .brand-title {
+              white-space: nowrap;
+              font-size: clamp(15px, 4.3vw, 19px);
+              letter-spacing: -.06em;
+            }
+
+            body.native-app .brand-sub {
+              font-size: 10px;
+            }
+
+            body.native-app .version {
+              flex: 0 0 auto;
+              margin-left: auto;
+              padding: 6px 8px;
+              font-size: 10px;
+            }
+
+            body.native-app #home .hero {
+              padding-top: 8px;
+              padding-bottom: 8px;
+            }
+
+            body.native-app #home .hero h1 {
+              font-size: clamp(40px, 10vw, 54px);
+              line-height: 1.08;
+              margin: 10px 0;
+            }
+
+            body.native-app #home .hero p {
+              line-height: 1.65;
+              margin-bottom: 10px;
+            }
+
+            body.native-app #home .example {
+              padding: 10px 14px;
+            }
+
+            body.native-app #home .mode-grid {
+              gap: 9px;
+              margin-bottom: 12px;
+            }
+
+            body.native-app #home .mode-card {
+              min-height: 71px;
+              padding: 11px 14px;
+            }
+
+            body.native-app #home .stats-strip {
+              padding: 10px 0;
+              margin-bottom: 9px;
+            }
+
+            body.native-app #home .purchase-panel {
+              margin-top: 0;
+            }
+
+            body.native-app.native-banner #home {
+              padding-bottom: 130px;
+            }
+
+            body.native-app .shell {
+              padding-top: calc(
+                19px + var(
+                  --safe-area-inset-top,
+                  env(safe-area-inset-top, 0px)
+                )
+              );
+
+              padding-bottom: calc(
+                18px + var(
+                  --safe-area-inset-bottom,
+                  env(safe-area-inset-bottom, 0px)
+                )
+              );
+            }
+
             body.native-app.native-banner .shell {
-              padding-bottom: calc(85px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)));
+              padding-bottom: calc(
+                85px + var(
+                  --safe-area-inset-bottom,
+                  env(safe-area-inset-bottom, 0px)
+                )
+              );
             }
           </style>
           '''
-          s = s.replace('</body>', css + '<script src="./native-entry.js"></script></body>', 1)
+
+          s = s.replace(
+            '</body>',
+            css + '<script src="./native-entry.js"></script></body>',
+            1
+          )
+
           p.write_text(s)
           PY
+
           npx cap init "Gyakushiji Panic" "io.github.zakky0424.gyakushijipanic" --web-dir www
           npx cap add android
           npx cap sync android
+
           python3 - <<'PY'
           from pathlib import Path
           import re
+
           p = Path('android/app/src/main/AndroidManifest.xml')
           s = p.read_text()
+
           metadata = '<meta-data android:name="com.google.android.gms.ads.APPLICATION_ID" android:value="ca-app-pub-3940256099942544~3347511713" />'
-          s, count = re.subn(r'(<application\b[^>]*>)', lambda m: m.group(1) + '\n        ' + metadata, s, count=1)
+
+          s, count = re.subn(
+            r'(<application\b[^>]*>)',
+            lambda m: m.group(1) + '\n        ' + metadata,
+            s,
+            count=1
+          )
+
           assert count == 1, 'AndroidManifestのapplication要素が見つかりません'
+
           p.write_text(s)
           PY
+
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
