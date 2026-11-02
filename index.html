@@ -183,4 +183,267 @@ function createRound(random = Math.random, number = 0, allowWait = true) {
     question.subtitle = '「押すな」の対象に注意';
     question.expected = [selected.id];
   } else if (type === 'excludeTwo') {
-    const forbidden = shu
+    const forbidden = shuffle(COLORS.filter(c => c.id !== selected.id), random);
+    question.title = `${forbidden[0].label}と${forbidden[1].label}を押すな！`;
+    question.subtitle = '残った1色だけが正解';
+    question.expected = [selected.id];
+  } else if (type === 'wait') {
+    question.title = '何も押すな！';
+    question.subtitle = 'じっと待てば正解';
+  }
+  return question;
+}
+
+function isCorrectChoice(round, choiceId) {
+  return round.type !== 'wait' && round.expected.includes(choiceId);
+}
+
+/** Date in local time; today's five questions are shared by the same calendar date. */
+function localDateKey(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+const GAME_LENGTH_MS = 30000;
+const DAILY_QUESTIONS = 5;
+
+const $ = id => document.getElementById(id);
+const screens = ['home', 'game', 'result'];
+const current = { mode: null, round: null, question: 0, score: 0, misses: 0, streak: 0, untilEnd: 0, untilRound: 0, roundDuration: 0, random: Math.random, raf: 0, playing: false, pausedAt: 0, date: '', waitSeen: false, feedbackTimeout: 0, effectTimeout: 0 };
+const storage = {
+  get(key) { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch { return null; } },
+  set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* private/incognito mode */ } },
+};
+
+function showScreen(name) {
+  for (const screen of screens) $(screen).hidden = name !== screen;
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+function refreshHome() {
+  const challenge = storage.get('challengeBest.v1');
+  $('best-score').textContent = Number.isFinite(challenge?.score) ? `${challenge.score}問` : '—';
+  const daily = storage.get(`dailyBest.${localDateKey()}.v1`);
+  $('daily-best').textContent = Number.isFinite(daily?.score) ? `${daily.score}/${DAILY_QUESTIONS}問` : '未挑戦';
+}
+function clearFeedback() {
+  clearTimeout(current.feedbackTimeout);
+  $('feedback').textContent = '';
+  $('feedback').className = 'feedback';
+}
+function toast(message, good) {
+  clearFeedback();
+  $('feedback').textContent = message;
+  $('feedback').classList.add(good ? 'good' : 'bad');
+  current.feedbackTimeout = setTimeout(clearFeedback, 700);
+}
+// 正誤をカードの光と小さな記号で知らせる。音声・追加アセットは不要。
+function clearAnswerEffect() {
+  clearTimeout(current.effectTimeout);
+  $('prompt-card').classList.remove('effect-good', 'effect-bad');
+  $('effect-badge').className = 'effect-badge';
+  $('effect-badge').textContent = '';
+  $('score-display').classList.remove('score-pop');
+  $('streak-display').classList.remove('score-pop');
+}
+function showAnswerEffect(good) {
+  clearAnswerEffect();
+  const card = $('prompt-card');
+  const badge = $('effect-badge');
+  // 再連続回答でもCSSアニメーションを最初から再生する。
+  void card.offsetWidth;
+  card.classList.add(good ? 'effect-good' : 'effect-bad');
+  badge.classList.add(good ? 'good' : 'bad');
+  badge.textContent = good ? '✓' : '×';
+  if (good) {
+    $('score-display').classList.add('score-pop');
+    $('streak-display').classList.add('score-pop');
+  }
+  current.effectTimeout = setTimeout(clearAnswerEffect, 500);
+}
+// 画面が狭い場合だけ指示文の文字サイズを縮め、必ず1行に収める。
+// 「意味」「見た目」の1.18倍の強調はそのまま維持する。
+function fitPromptToOneLine() {
+  const prompt = $('prompt');
+  prompt.style.removeProperty('font-size');
+  const normalSize = parseFloat(getComputedStyle(prompt).fontSize);
+  let size = normalSize;
+  // レイアウト幅に合わせ、フォントサイズを0.5pxずつ縮小して調整する。
+  while (prompt.scrollWidth > prompt.clientWidth + 1 && size > 12) {
+    size = Math.max(12, size - 0.5);
+    prompt.style.fontSize = `${size}px`;
+  }
+}
+window.addEventListener('resize', fitPromptToOneLine);
+if (document.fonts?.ready) document.fonts.ready.then(fitPromptToOneLine);
+
+function nextRound(now = performance.now()) {
+  if (!current.playing) return;
+  if (current.mode === 'daily' && current.question >= DAILY_QUESTIONS) return finish();
+  current.question++;
+  current.round = createRound(current.random, current.question - 1, !current.waitSeen);
+  if (current.round.type === 'wait') current.waitSeen = true;
+  current.roundDuration = current.round.durationMs;
+  current.untilRound = now + current.roundDuration;
+  const r = current.round;
+  $('question-count').textContent = current.mode === 'daily' ? `Q${current.question}/${DAILY_QUESTIONS}` : `Q${current.question}`;
+  // 「意味」「見た目」だけを少し大きくして、素早く読み分けられるようにする。
+  if (r.type === 'word' || r.type === 'ink') {
+    const keyword = document.createElement('span');
+    keyword.className = 'prompt-keyword';
+    keyword.textContent = r.type === 'word' ? '意味' : '見た目';
+    $('prompt').replaceChildren('文字の', keyword, 'の色を押せ！');
+  } else {
+    $('prompt').textContent = r.title;
+  }
+  fitPromptToOneLine();
+  $('prompt-subtitle').textContent = r.subtitle;
+  $('stimulus').hidden = !r.stimulus;
+  if (r.stimulus) {
+    $('stimulus').textContent = r.stimulus.text;
+    $('stimulus').style.color = r.stimulus.ink;
+  }
+  $('wait-note').hidden = r.type !== 'wait';
+  $('answers').setAttribute('aria-label', r.type === 'wait' ? 'この問題では押さないでください' : '色を選択');
+  const buttons = [...$('answers').querySelectorAll('button')];
+  buttons.forEach((button, i) => {
+    const c = r.choices[i];
+    button.dataset.answer = c.id;
+    button.querySelector('span').textContent = c.label;
+    button.setAttribute('aria-label', `${i + 1}番目、${c.label}のボタン`);
+  });
+  $('score-display').textContent = current.score;
+  $('streak-display').textContent = current.streak;
+}
+function begin(mode) {
+  cancelAnimationFrame(current.raf);
+  clearFeedback();
+  clearAnswerEffect();
+  const now = performance.now();
+  current.mode = mode;
+  current.date = localDateKey();
+  current.random = mode === 'daily' ? seededRandom(seedFromString(`gyakushiji:${current.date}:v1`)) : Math.random;
+  current.score = 0;
+  current.misses = 0;
+  current.streak = 0;
+  current.question = 0;
+  current.waitSeen = false;
+  current.playing = true;
+  current.pausedAt = 0;
+  current.untilEnd = now + GAME_LENGTH_MS;
+  $('mode-caption').textContent = mode === 'daily' ? '今日の5問' : '30秒チャレンジ';
+  $('time-display').innerHTML = '30.0<small>秒</small>';
+  showScreen('game');
+  nextRound(now);
+  current.raf = requestAnimationFrame(tick);
+}
+function answer(value) {
+  if (!current.playing || document.hidden) return;
+  const now = performance.now();
+  if (now >= current.untilEnd || now >= current.untilRound) return; // handled on next frame
+  if (isCorrectChoice(current.round, value)) {
+    current.score++;
+    current.streak++;
+    toast(current.streak >= 3 ? `${current.streak}連続正解！` : '正解！', true);
+    showAnswerEffect(true);
+  } else {
+    fail('ちがう！ −1.8秒', now);
+    if (!current.playing) return;
+  }
+  nextRound(now);
+}
+function fail(message, now) {
+  current.misses++;
+  current.streak = 0;
+  current.untilEnd -= 1800;
+  if ('vibrate' in navigator) navigator.vibrate?.(35);
+  toast(message, false);
+  showAnswerEffect(false);
+  if (current.untilEnd <= now) finish();
+}
+function tick(now) {
+  if (!current.playing) return;
+  if (document.hidden) { current.raf = requestAnimationFrame(tick); return; }
+  const left = Math.max(0, current.untilEnd - now);
+  const roundLeft = Math.max(0, current.untilRound - now);
+  $('time-display').innerHTML = `${(left / 1000).toFixed(1)}<small>秒</small>`;
+  $('timer-fill').style.width = `${Math.min(100, left / GAME_LENGTH_MS * 100)}%`;
+  $('round-fill').style.width = `${Math.min(100, roundLeft / current.roundDuration * 100)}%`;
+  if (left <= 0) return finish();
+  if (roundLeft <= 0) {
+    if (current.round.type === 'wait') {
+      current.score++;
+      current.streak++;
+      toast('待てた！ 正解！', true);
+      showAnswerEffect(true);
+    } else {
+      fail('時間切れ！ −1.8秒', now);
+    }
+    if (current.playing) nextRound(now);
+  }
+  if (current.playing) current.raf = requestAnimationFrame(tick);
+}
+function finish() {
+  if (!current.playing) return;
+  current.playing = false;
+  cancelAnimationFrame(current.raf);
+  clearFeedback();
+  clearAnswerEffect();
+  const key = current.mode === 'daily' ? `dailyBest.${current.date}.v1` : 'challengeBest.v1';
+  const previous = storage.get(key);
+  const previousScore = Number.isFinite(previous?.score) ? previous.score : -1;
+  const best = Math.max(previousScore, current.score);
+  if (current.score > previousScore || (current.score === previousScore && current.misses < (previous?.misses ?? Infinity))) {
+    storage.set(key, { score: current.score, misses: current.misses, updatedAt: new Date().toISOString() });
+  }
+  $('result-label').textContent = current.mode === 'daily' ? `${current.date} 今日の5問 結果` : '30秒チャレンジ 結果';
+  $('result-heading').textContent = current.score > previousScore ? '自己ベスト更新！' : current.score > 0 ? 'ナイスチャレンジ！' : '次こそ成功！';
+  $('result-subtitle').textContent = current.mode === 'daily' ? '今日の問題は、誰が遊んでも同じです。' : '友達に何問正解したか自慢しよう。';
+  $('final-score').textContent = current.score;
+  $('final-miss').textContent = current.misses;
+  $('final-best').textContent = Math.max(best, 0);
+  $('final-unit').textContent = current.mode === 'daily' ? `/ ${DAILY_QUESTIONS} 問` : '問';
+  showScreen('result');
+}
+async function share() {
+  const label = current.mode === 'daily' ? `今日の5問（${current.date}）` : '30秒チャレンジ';
+  const text = `⚡逆指示パニック\n${label}: ${current.score}${current.mode === 'daily' ? `/${DAILY_QUESTIONS}` : ''}問正解！\nミス: ${current.misses}回\nあなたは何問できる？`;
+  const url = location.protocol.startsWith('http') ? location.href.split('#')[0] : '';
+  try {
+    if (navigator.share) await navigator.share({ text, ...(url ? { url } : {}) });
+    else if (navigator.clipboard) { await navigator.clipboard.writeText(`${text}${url ? `\n${url}` : ''}`); toast('結果をコピーしました！', true); }
+    else toast('スクリーンショットで共有してください', true);
+  } catch (err) { if (err?.name !== 'AbortError') toast('共有できませんでした。スクショをご利用ください', false); }
+}
+function home() { current.playing = false; cancelAnimationFrame(current.raf); clearFeedback(); clearAnswerEffect(); refreshHome(); showScreen('home'); }
+$('start-challenge').addEventListener('click', () => begin('challenge'));
+$('start-daily').addEventListener('click', () => begin('daily'));
+$('answers').addEventListener('click', event => { const button = event.target.closest('button[data-answer]'); if (button) answer(button.dataset.answer); });
+$('quit').addEventListener('click', home);
+$('back-home').addEventListener('click', home);
+$('retry').addEventListener('click', () => begin(current.mode));
+$('share').addEventListener('click', share);
+document.addEventListener('visibilitychange', () => {
+  if (!current.playing) return;
+  if (document.hidden) current.pausedAt = performance.now();
+  else if (current.pausedAt) {
+    const diff = performance.now() - current.pausedAt;
+    current.untilEnd += diff;
+    current.untilRound += diff;
+    current.pausedAt = 0;
+  }
+});
+// PWA v0.7: GitHub Pages のサブディレクトリでも有効な相対 URL で登録。
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(error => {
+      console.warn('オフライン機能を有効化できませんでした:', error);
+    });
+  });
+}
+refreshHome();
+
+</script>
+</body>
+</html>
